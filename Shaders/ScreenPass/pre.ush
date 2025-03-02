@@ -1,0 +1,80 @@
+#pragma once
+
+//Include this at the top of your shader.
+//Then define your own Material inputs as static variables,
+//    and finally include "post.ush".
+
+
+//Mimic the preprocessor tokens from the original post-process shaders, with small tweaks:
+#define POST_PROCESS_MATERIAL 1
+#define POST_PROCESS_MATERIAL_BEFORE_TONEMAP 1
+#define STRATA_INLINE_SHADING 0
+#define STRATA_DEFERRED_SHADING 0
+
+
+//The below is mostly copied from the standard Post-Process Material pixel shader.
+
+#include "/Engine/Private/Common.ush"
+#include "/Engine/Private/ScreenPass.ush"
+
+// Must match ESceneTextureId
+#define PPI_PostProcessInput0 14
+#define PPI_PostProcessInput1 15
+#define PPI_PostProcessInput2 16
+#define PPI_PostProcessInput3 17
+#define PPI_PostProcessInput4 18
+
+SCREEN_PASS_TEXTURE_VIEWPORT(PostProcessInput_0) 
+SCREEN_PASS_TEXTURE_VIEWPORT(PostProcessInput_1)
+SCREEN_PASS_TEXTURE_VIEWPORT(PostProcessInput_2)
+SCREEN_PASS_TEXTURE_VIEWPORT(PostProcessInput_3)
+SCREEN_PASS_TEXTURE_VIEWPORT(PostProcessInput_4)
+
+SCREEN_PASS_TEXTURE_VIEWPORT(PostProcessOutput)
+
+Texture2D PostProcessInput_0_Texture;
+Texture2D PostProcessInput_1_Texture;
+Texture2D PostProcessInput_2_Texture;
+Texture2D PostProcessInput_3_Texture;
+Texture2D PostProcessInput_4_Texture;
+
+SamplerState PostProcessInput_0_Sampler;
+SamplerState PostProcessInput_1_Sampler;
+SamplerState PostProcessInput_2_Sampler;
+SamplerState PostProcessInput_3_Sampler;
+SamplerState PostProcessInput_4_Sampler;
+
+SamplerState PostProcessInput_BilinearSampler;
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	#define PostProcessInput_0_SharedSampler PostProcessInput_0_Sampler
+	#define PostProcessInput_1_SharedSampler PostProcessInput_0_Sampler
+	#define PostProcessInput_2_SharedSampler PostProcessInput_0_Sampler
+	#define PostProcessInput_3_SharedSampler PostProcessInput_0_Sampler
+	#define PostProcessInput_4_SharedSampler PostProcessInput_0_Sampler
+#else
+	#define PostProcessInput_0_SharedSampler PostProcessInput_0_Sampler
+	#define PostProcessInput_1_SharedSampler PostProcessInput_1_Sampler
+	#define PostProcessInput_2_SharedSampler PostProcessInput_2_Sampler
+	#define PostProcessInput_3_SharedSampler PostProcessInput_3_Sampler
+	#define PostProcessInput_4_SharedSampler PostProcessInput_4_Sampler
+#endif
+
+#if MATERIAL_PATH_TRACING_BUFFER_READ
+	SCREEN_PASS_TEXTURE_VIEWPORT(PathTracingPostProcessInput_0)
+	SCREEN_PASS_TEXTURE_VIEWPORT(PathTracingPostProcessInput_1)
+	SCREEN_PASS_TEXTURE_VIEWPORT(PathTracingPostProcessInput_2)
+	SCREEN_PASS_TEXTURE_VIEWPORT(PathTracingPostProcessInput_3)
+	SCREEN_PASS_TEXTURE_VIEWPORT(PathTracingPostProcessInput_4)
+	Texture2D PathTracingPostProcessInput_0_Texture;
+	Texture2D PathTracingPostProcessInput_1_Texture;
+	Texture2D PathTracingPostProcessInput_2_Texture;
+	Texture2D PathTracingPostProcessInput_3_Texture;
+	Texture2D PathTracingPostProcessInput_4_Texture;
+	SamplerState PathTracingPostProcessInput_0_Sampler;
+	SamplerState PathTracingPostProcessInput_1_Sampler;
+	SamplerState PathTracingPostProcessInput_2_Sampler;
+	SamplerState PathTracingPostProcessInput_3_Sampler;
+	SamplerState PathTracingPostProcessInput_4_Sampler;
+#endif
+
+#define EYE_ADAPTATION_LOOSE_PARAMETERS 1

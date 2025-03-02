@@ -1,0 +1,231 @@
+#pragma once
+
+//First include "pre.ush" at the top of your shader,
+//    then define your own Material inputs as static variables,
+//    then finally include this file.
+#if defined(__INTELLISENSE__) || defined(__RESHARPER__)
+	//Manually include "pre" for Intellisense purposes.
+	#include "pre.ush" 
+#elif !defined(POST_PROCESS_MATERIAL) || !POST_PROCESS_MATERIAL
+	#error "Must include 'pre.ush' before 'post.ush'!"
+#endif
+
+//Bring in the Material's code.
+#if defined(__INTELLISENSE__) || defined(__RESHARPER__)
+	#include "/Engine/Private/MaterialTemplate.ush"
+	#define NUM_TEX_COORD_INTERPOLATORS 1
+	#define NUM_MATERIAL_TEXCOORDS_VERTEX 1
+	#define NUM_MATERIAL_TEXCOORDS 1
+#else
+	#include "/Engine/Generated/Material.ush"
+#endif
+
+/*
+     Note about texture coordinates: it seems there are three preprocessor constants
+      defining how many texture coordinates are in the material data.
+
+       * NUM_TEX_COORD_INTERPOLATORS: the total count of float2 interpolators from VS to PS for this Material
+           (usually packed into float4's to minimize interpolator count)
+       * NUM_MATERIAL_TEXCOORDS_VERTEX: the total count of float2 UV coordinates in the vertex shader
+           (I guess to accomodate geometry with multiple UV's?)
+       * NUM_MATERIAL_TEXCOORDS: the total count of float2 UV coordinates in the pixel shader
+		   (I'm not sure yet exactly how they get filled in)
+
+	  My understanding is that for post-process Materials (and therefore our screen-pass Materials),
+	      there's only one meaningful texture coordinate -- the output viewport UV --
+	      so the notion of multiple UV's is redundant.
+*/
+	
+//Define the Material's VS outputs/PS inputs.
+struct FTexCoordsVSToPS
+{
+	#if NUM_TEX_COORD_INTERPOLATORS
+		float4 TexCoords[(NUM_TEX_COORD_INTERPOLATORS+1)/2] : TEXCOORD0;
+	#endif
+};
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 GetUV(FTexCoordsVSToPS Interpolants, int UVIndex)
+	{
+		float4 UVVector = Interpolants.TexCoords[UVIndex / 2];
+		return Mod(UVIndex, 2) == 1 ? UVVector.zw : UVVector.xy;
+	}
+	void SetUV(inout FTexCoordsVSToPS Interpolants, int UVIndex, float2 InValue)
+	{
+		FLATTEN
+		if (Mod(UVIndex, 2) == 1)
+		{
+			Interpolants.TexCoords[UVIndex / 2].zw = InValue;
+		}
+		else
+		{
+			Interpolants.TexCoords[UVIndex / 2].xy = InValue;
+		}
+	}
+#endif
+FMaterialVertexParameters GetScreenPassMaterialVSParameters(float2 UV)
+{
+	// Most params irrelevant so not a lot to fill out here
+	FMaterialVertexParameters Result = MakeInitializedMaterialVertexParameters();
+	Result.VertexColor = (1.f).xxxx;
+	Result.WorldPosition = float3(UV, 0.f); 
+	
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX
+		UNROLL
+		for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
+		{
+			Result.TexCoords[CoordinateIndex] = UV;
+		}
+	#endif
+
+	return Result;
+}
+
+//Define the vertex-shader boilerplate.
+void ScreenPassSetupVS(in float2 uv,
+					   out FMaterialVertexParameters materialParameters,
+					   out FTexCoordsVSToPS materialVSOutputs)
+{
+	materialVSOutputs = (FTexCoordsVSToPS)0;
+	materialParameters = GetScreenPassMaterialVSParameters(uv);
+
+	#if NUM_TEX_COORD_INTERPOLATORS
+		float2 customizedUVs[NUM_TEX_COORD_INTERPOLATORS];
+		GetMaterialCustomizedUVs(materialParameters, customizedUVs);
+		GetCustomInterpolators(materialParameters, customizedUVs);
+		
+		{
+			UNROLL
+			for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
+			{
+				SetUV(materialVSOutputs, CoordinateIndex, uv);
+			}
+		}
+		{
+			UNROLL
+			for (int CoordinateIndex = NUM_MATERIAL_TEXCOORDS; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
+			{
+				SetUV(materialVSOutputs, CoordinateIndex, customizedUVs[CoordinateIndex]);
+			}
+		}
+	#endif
+}
+
+//Define the pixel-shader boilerplate.
+static bool ActAsIfFrontFace = true; //If false, will act as if back-face instead. (not a parameter because it's virtually never needed)
+void ScreenPassSetupPS(in float4 svPos, // (comes from SV_POSITION input semantic)
+					   in FTexCoordsVSToPS materialInputsFromVS,
+					   out FPixelMaterialInputs materialInputs,
+					   out FMaterialPixelParameters materialParameters)
+{
+	//If the user already did this, the redundant work should be optimized out.
+	//If they didn't, then we need to do it.
+	ResolvedView = ResolveView();
+
+	//Normally the "pixel parameters" come from a Vertex Factory,
+	//    but Material shaders don't have those.
+	materialParameters = MakeInitializedMaterialPixelParameters();
+		
+	float2 outputViewportUV = (svPos.xy - PostProcessOutput_ViewportMin.xy) * PostProcessOutput_ViewportSizeInverse.xy;
+	#if NUM_TEX_COORD_INTERPOLATORS
+		{
+			UNROLL
+			for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
+			{
+				materialParameters.TexCoords[CoordinateIndex] = outputViewportUV;
+			}
+		}
+		{
+			UNROLL
+			for (int CoordinateIndex = NUM_MATERIAL_TEXCOORDS; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
+			{
+				materialParameters.TexCoords[CoordinateIndex] = GetUV(materialInputsFromVS, CoordinateIndex);
+			}
+		}
+	#endif
+		
+	materialParameters.VertexColor = 1;
+
+	//Fill out other material parameter data.
+	svPos.z = max(1e-18, LookupDeviceZ(ViewportUVToBufferUV(outputViewportUV)));
+	CalcMaterialParametersPost(materialParameters, materialInputs, svPos, ActAsIfFrontFace);
+}
+
+//Define the compute-shader boilerplate.
+void ScreenPassSetupCS(in uint2 viewportPixel,
+					   #if EGP_IS_SIMULATION
+					       in float2 uv, float3 fakeWorldPos, float fakeDepth,
+					   #else
+					   #endif
+					   out FPixelMaterialInputs materialInputs,
+					   out FMaterialPixelParameters materialParameters)
+{
+	//If the user already did this, the redundant work should be optimized out.
+	//If they didn't, then we need to do it.
+	ResolvedView = ResolveView();
+
+	//Normally the "pixel parameters" come from a Vertex Factory,
+	//    but Material shaders don't have those.
+	materialParameters = MakeInitializedMaterialPixelParameters();
+
+	//Do some coordinate math.
+	float4 svPos = float4(float2(viewportPixel) + 0.5,
+						   -999.0, //Filled in a few lines later
+						  1.0);
+	float2 outputViewportUV =
+		#if EGP_IS_SIMULATION
+			uv
+		#else
+			(svPos.xy - PostProcessOutput_ViewportMin.xy) * PostProcessOutput_ViewportSizeInverse.xy
+		#endif
+	;
+	svPos.z = max(1e-18,
+        #if EGP_IS_SIMULATION
+            fakeDepth
+        #else
+            LookupDeviceZ(ViewportUVToBufferUV(outputViewportUV))
+        #endif
+	);
+	
+	#if NUM_TEX_COORD_INTERPOLATORS
+		{
+			UNROLL
+			for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
+			{
+				materialParameters.TexCoords[CoordinateIndex] = outputViewportUV;
+			}
+		}
+		{
+			UNROLL
+			for (int CoordinateIndex = NUM_MATERIAL_TEXCOORDS; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
+			{
+				materialParameters.TexCoords[CoordinateIndex] = outputViewportUV;
+			}
+		}
+	#endif
+		
+	materialParameters.VertexColor = 1;
+
+	//Fill out other material parameter data.
+	float4 ndcPos = #if EGP_IS_SIMULATION
+					    svPos.w * float4(
+					        //Stole this math from SvPositionToScreenPosition
+							float2(2, -2) * (uv - 0.5),
+							svPos.z,
+							1.0
+						)
+					#else
+					    SvPositionToResolvedScreenPosition(svPos)
+					#endif
+	;
+	float3 worldPosition = #if EGP_IS_SIMULATION
+						       fakeWorldPos
+						   #else
+						       SvPositionToResolvedTranslatedWorld(svPos)
+						   #endif
+	;
+	CalcMaterialParametersEx(
+		materialParameters, materialInputs,
+		svPos, ndcPos, ActAsIfFrontFace,
+		worldPosition, worldPosition
+	);
+}

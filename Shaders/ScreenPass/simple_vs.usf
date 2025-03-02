@@ -1,0 +1,12 @@
+#include "pre.ush"
+#include "post.ush"
+
+void MainVS(in float4 uv4 : ATTRIBUTE0,
+			out FTexCoordsVSToPS materialInterpolants,
+			out float4 outPos : SV_POSITION)
+{
+	FMaterialVertexParameters mParams;
+	ScreenPassSetupVS(uv4.xy, mParams, materialInterpolants);
+
+	DrawRectangle(uv4, outPos);
+}

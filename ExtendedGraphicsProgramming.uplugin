@@ -1,0 +1,22 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "ExtendedGraphicsProgramming",
+	"Description": "Eases the burden of advanced graphics programming in Unreal 5.3",
+	"Category": "Other",
+	"CreatedBy": "William Mishra-Manning",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ExtendedGraphicsProgramming",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit"
+		}
+	]
+}

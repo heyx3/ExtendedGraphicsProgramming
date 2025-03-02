@@ -1,0 +1,11 @@
+**/Intermediate/
+**/DerivedDataCache/
+**/Saved/
+**/Binaries/
+
+**/.vs/
+**/.vsconfig
+**/.idea/
+
+**/*.csproj
+**/*.sln
