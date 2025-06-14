@@ -324,6 +324,15 @@ namespace EGP
 			const FScreenSpacePassMaterialInputs& inputs
 		);
 	}
+
+	//Unreal's FScreenPassPipelineState seems to have changed the stencil ref type from uint32 to uint8 after 5.3.
+	using uint_UnrealScreenPassStencil_t =
+		#if ENGINE_MINOR_VERSION < 4
+			uint32
+		#else
+			uint8
+		#endif
+	;
 	
 	//Instructions for how a screen-space Material pass should render itself, using a Vertex and Pixel shader.
 	//By default, parameter setup will be done automatically by calling
@@ -338,7 +347,7 @@ namespace EGP
 	{
 		FRHIBlendState* BlendState = FScreenPassPipelineState::FDefaultBlendState::GetRHI();
 		FRHIDepthStencilState* DepthStencilState = FScreenPassPipelineState::FDefaultDepthStencilState::GetRHI();
-		uint32 StencilRef = 0;
+		uint_UnrealScreenPassStencil_t StencilRef = 0;
 
 		int PermutationIdVS = 0,
 			PermutationIdPS = 0;
@@ -363,7 +372,7 @@ namespace EGP
 		TScreenSpacePassRenderState(SetupFn&& setupCallback,
 								    FRHIBlendState* blendState = nullptr,
 								    FRHIDepthStencilState* depthStencilState = nullptr,
-								    uint32 stencilRef = 0,
+								    uint_UnrealScreenPassStencil_t stencilRef = 0,
 								    int permutationIdVS = 0, int permutationIdPS = 0)
 			: FScreenSpacePassRenderState{ blendState, depthStencilState, stencilRef, permutationIdVS, permutationIdPS },
 			  SetupCallback(MoveTemp(setupCallback))
