@@ -43,7 +43,6 @@ void EGP::impl::FillScreenSpaceMaterialParams(FRDGBuilder& renderGraph,
 	params->View = inputs.TargetView->ViewUniformBuffer;
 	params->PostProcessOutput = GetScreenPassTextureViewportParameters(inputs.OutputViewportData);
 	params->EyeAdaptationBuffer = renderGraph.CreateSRV(GetEyeAdaptationBuffer(renderGraph, *inputs.TargetView));
-	params->Strata = inputs.TargetView->StrataViewData.StrataGlobalUniformParameters;
 }
 
 void EGP::FSimulationShader::ModifyCompilationEnvironment(const FMaterialShaderPermutationParameters& params,

@@ -312,7 +312,6 @@ namespace EGP
 		BEGIN_SHADER_PARAMETER_STRUCT(FScreenSpaceMaterialParameters, EXTENDEDGRAPHICSPROGRAMMING_API)
 			SHADER_PARAMETER_STRUCT_INCLUDE(impl::FSimulationMaterialParameters, BaseParams)
 			SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, View)
-			SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FStrataGlobalUniformParameters, Strata)
 			SHADER_PARAMETER_STRUCT_INCLUDE(FSceneTextureShaderParameters, SceneTextures)
 			SHADER_PARAMETER_STRUCT(FScreenPassTextureViewportParameters, PostProcessOutput)
 			SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>, EyeAdaptationBuffer)
