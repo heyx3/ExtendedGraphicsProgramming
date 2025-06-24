@@ -1,6 +1,6 @@
 # Extended Graphics Programming ("EGP")
 
-An Unreal 5.3 plugin that helps with advanced graphics programming.
+An Unreal 5.3+ plugin that helps with advanced graphics programming.
 Pure C++ code is in the namepsace `EGP`, unreal types contain the prefix `EGP_`,
     and macros start with `EGP_`.
 
