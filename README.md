@@ -30,7 +30,7 @@ To make shaders for one of these passes, do the following:
     (or the templated child versions that provide extra control).
 5. Call the correct function for your pass, either
     `AddSimulationMaterialPass()` or `AddScreenSpaceRenderPass()` or `AddScreenSpaceComputePass()`.
-6. In your shader source, to import Material code, add the following:
+6. In your shader source, to import Material and Post-Process code, add the following:
 
 ````
 #include "/EGP/ScreenPass/pre.ush"
@@ -38,7 +38,7 @@ To make shaders for one of these passes, do the following:
 #include "/EGP/ScreenPass/post.ush"
 ````
 
-7. See engine Material shaders for examples of how to invoke the Material code correctly.
+7. See `post.ush` for code that helps you invoke the Material based on which pass/shader you're in.
 
 ## Mesh batch gathering
 
