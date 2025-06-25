@@ -135,7 +135,7 @@ In our custom pass framework, the creation of the SVE
 This SVE will automatically filter itself out of different views based on the pass's `ViewFilter`,
     and enumerate all living instances of your components with `ForEachComponent_RenderThread()`.
 It will also ensure the owning pass object lives at least as long as any render-thread activity,
-    so you don't have to worry about the GC causing problems when a pass dies.
+    so you don't have to worry about race conditions when a pass dies.
     
 To execute a mesh pass you will also need a custom `MeshPassProcessor`,
     but those are out-of-scope for this framework because they don't have much boilerplate.
