@@ -122,7 +122,7 @@ It will be responsible for dispatching all the draw calls for your custom pass.
 
 Unreal's base class for scene view extensions is `FSceneViewExtensionBase`,
     but you will inherit from our own child class
-    `T_EGP_SceneViewExtension<TCustomPass[, TComponent, TComponentProxy>`.
+    `T_EGP_SceneViewExtension<TCustomPass[, TComponent, TComponentProxy]>`.
 The first template argument is your `U_EGP_RenderPass` child type.
 The subsequent template arguments are your `U_EGP_RenderPassComponent` and its proxy struct, if applicable.
 
